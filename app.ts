@@ -45,9 +45,7 @@ async function main() {
                 let wordCount: number = 0;
             // Dosya içeriðini satýrlara bölelim
             const words = data.split('\n');
-
-
-
+ 
             // Her satýrdaki kelimeye eriþim
             words.forEach((word) => {
                 if (Apiword === word) {
