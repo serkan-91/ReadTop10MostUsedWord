@@ -10,6 +10,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const httpClientService_1 = require("./Services/httpClientService");
+const util_1 = require("util");
+const fs = require("fs");
+const readFileAsync = (0, util_1.promisify)(fs.readFile);
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         const readline = require('readline');
@@ -17,32 +20,27 @@ function main() {
             input: process.stdin,
             output: process.stdout
         });
-        const fs = require('fs');
-        const path = 'C:\\Users\\Serkan\\Desktop\\TheWordWithTheMostExample2\\ApiWords.txt';
+        const wordsFromApiArray = [];
+        let top10word = [];
+        const path = 'C:\\Users\\Serkan\\Desktop\\TheWordWithTheMostExample2\\ApiWords2.txt';
         const requestParameter = {
             fullEndPoint: 'https://raw.githubusercontent.com/bilalozdemir/tr-word-list/master/files/words.json',
             headers: {
                 'Content-Type': 'application/json',
             },
         };
-        const wordsFromApiArray = [];
-        var client = new httpClientService_1.httpsClientService();
-        var response = yield client.get({ requestParameter });
-        response.forEach((item) => {
-            wordsFromApiArray.push(item.word);
-        });
-        var top10word = [];
-        // Dosyay� okuma i�lemi
-        fs.readFile(path, 'utf8', (err, data) => {
-            if (err) {
-                console.error('Dosya okuma hatas�: ' + err.message);
-                return;
+        const client = new httpClientService_1.httpsClientService();
+        const response = yield client.get({ requestParameter });
+        response.forEach(({ word }) => {
+            if (word.length > 4 && !wordsFromApiArray.includes(word)) {
+                wordsFromApiArray.push(word);
             }
+        });
+        try {
+            const data = yield readFileAsync(path, 'utf8');
             wordsFromApiArray.forEach((Apiword) => {
                 let wordCount = 0;
-                // Dosya i�eri�ini sat�rlara b�lelim
                 const words = data.split('\n');
-                // Her sat�rdaki kelimeye eri�im
                 words.forEach((word) => {
                     if (Apiword === word) {
                         wordCount += 1;
@@ -50,10 +48,13 @@ function main() {
                 });
                 top10word.push({ Word: Apiword, Count: wordCount });
             });
-        });
-        top10word = top10word.sort((a, b) => b.Count - a.Count);
-        top10word = top10word.slice(0, 10);
-        console.log(top10word);
+            // Kelime say�s�na g�re azalan s�rayla s�rala
+            top10word = top10word.sort((a, b) => b.Count - a.Count).slice(0, 10);
+            console.log(top10word);
+        }
+        catch (err) {
+            console.error('Dosya okuma hatas�: ' + err.message);
+        }
         rl.question('Uygulama sonland�. ��kmak i�in Enter tu�una bas�n...', () => {
             rl.close();
         });

@@ -1,7 +1,11 @@
-import { count } from "console";
 import { WordJsonModel } from "./Models/WordJsonModel";
 import { WordWithCount } from "./Models/wordWithCount";
 import { RequestParameters, httpsClientService } from "./Services/httpClientService";
+import { promisify } from "util";
+import * as fs from "fs";
+
+const readFileAsync = promisify(fs.readFile);
+
 async function main() {
     const readline = require('readline');
     const rl = readline.createInterface({
@@ -9,60 +13,57 @@ async function main() {
         output: process.stdout
     });
 
-    const fs = require('fs');
+    const wordsFromApiArray: string[] = [];
+    let top10word: WordWithCount[] = [];
+    const path = 'C:\\Users\\Serkan\\Desktop\\TheWordWithTheMostExample2\\ApiWords2.txt';
 
-    const path = 'C:\\Users\\Serkan\\Desktop\\TheWordWithTheMostExample2\\ApiWords.txt';
- 
     const requestParameter: RequestParameters = {
         fullEndPoint: 'https://raw.githubusercontent.com/bilalozdemir/tr-word-list/master/files/words.json',
         headers: {
             'Content-Type': 'application/json',
         },
     };
-    const wordsFromApiArray = [];
 
-    var client = new httpsClientService();
+    const client = new httpsClientService();
 
-    var response = await client.get<WordJsonModel[]>({ requestParameter });
+    const response = await client.get<WordJsonModel[]>({ requestParameter });
 
+    response.forEach(({ word }) => {
+        if (word.length > 4 && !wordsFromApiArray.includes(word)) {
+            wordsFromApiArray.push(word);
 
-    response.forEach((item) => {
-        wordsFromApiArray.push(item.word)
+        }
     });
 
-    var top10word: WordWithCount[] = [];
+    try {
+        const data = await readFileAsync(path, 'utf8');
 
+        wordsFromApiArray.forEach((Apiword: string) => {
+            let wordCount: number = 0;
 
-        // Dosyayý okuma iþlemi
-        fs.readFile(path, 'utf8', (err, data) => {
-            if (err) {
-                console.error('Dosya okuma hatasý: ' + err.message);
-                return;
-            }
-
-            wordsFromApiArray.forEach((Apiword: string) => {
-
-                let wordCount: number = 0;
-            // Dosya içeriðini satýrlara bölelim
             const words = data.split('\n');
- 
-            // Her satýrdaki kelimeye eriþim
+
             words.forEach((word) => {
                 if (Apiword === word) {
-                    wordCount += 1
+                    wordCount += 1;
                 }
+            });
 
-            });
-                top10word.push({ Word: Apiword, Count: wordCount })
-            });
+            top10word.push({ Word: Apiword, Count: wordCount });
         });
-    
-    top10word = top10word.sort((a, b) => b.Count - a.Count);
-    top10word = top10word.slice(0, 10);
-    console.log(top10word);
+
+        // Kelime sayýsýna göre azalan sýrayla sýrala
+       top10word= top10word.sort((a, b) => b.Count - a.Count).slice(0,10);
+
+        console.log(top10word);
+
+    } catch (err) {
+        console.error('Dosya okuma hatasý: ' + err.message);
+    }
 
     rl.question('Uygulama sonlandý. Çýkmak için Enter tuþuna basýn...', () => {
         rl.close();
     });
-} 
+}
+
 main();
